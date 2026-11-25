@@ -64,9 +64,47 @@ STOP_WORDS = {
     "would",
 }
 
+TRANSLATED_TERMS = {
+    "te": {
+        "నీరు": "water",
+        "చెరువు": "pond",
+        "రొయ్య": "shrimp",
+        "రొయ్యలు": "shrimp",
+        "పెంపకం": "farming",
+        "దశ": "stages",
+        "దశలు": "stages",
+        "ప్రవర్తన": "behaviour",
+        "ఆహారం": "feeding",
+        "ఆక్సిజన్": "oxygen",
+        "ఉప్పుతనం": "salinity",
+        "జీవభద్రత": "biosecurity",
+        "పర్యవేక్షణ": "monitoring",
+    },
+    "hi": {
+        "पानी": "water",
+        "तालाब": "pond",
+        "झींगा": "shrimp",
+        "झींगे": "shrimp",
+        "पालन": "farming",
+        "चरण": "stages",
+        "व्यवहार": "behaviour",
+        "खुराक": "feeding",
+        "ऑक्सीजन": "oxygen",
+        "लवणता": "salinity",
+        "जैवसुरक्षा": "biosecurity",
+        "निगरानी": "monitoring",
+    },
+}
 
-def retrieve(query: str, limit: int = 3) -> list[dict[str, str]]:
-    terms = set(re.findall(r"[a-z0-9]{3,}", query.lower())) - STOP_WORDS
+
+def retrieve(query: str, limit: int = 3, language: str = "en") -> list[dict[str, str]]:
+    lowered_query = query.lower()
+    terms = set(re.findall(r"[a-z0-9]{3,}", lowered_query)) - STOP_WORDS
+    terms.update(
+        english_term
+        for phrase, english_term in TRANSLATED_TERMS.get(language, {}).items()
+        if phrase in lowered_query
+    )
     if not terms:
         return []
     scored = []
@@ -80,7 +118,7 @@ def retrieve(query: str, limit: int = 3) -> list[dict[str, str]]:
 
 
 def answer_question(question: str, language: str) -> dict[str, object]:
-    matches = retrieve(question)
+    matches = retrieve(question, language=language)
     if not matches:
         answers = {
             "en": "I couldn’t find a reliable match in the local reference set. Please add the pond readings or ask an aquaculture expert; no pond-specific diagnosis is available.",

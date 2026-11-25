@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.knowledge import answer_question, retrieve
 from app.models import Reading
-from app.monitoring import assess_reading
+from app.monitoring import assess_reading, serialize_utc
 from app.schemas import IncidentCreate, PondCreate, ReadingCreate
 
 
@@ -58,8 +58,20 @@ class KnowledgeTests(unittest.TestCase):
         self.assertEqual(result["citations"], [])
         self.assertIn("not a pond diagnosis", result["limitation"])
 
+    def test_telugu_and_hindi_terms_retrieve_relevant_references(self) -> None:
+        telugu = answer_question("రొయ్యల పెంపకం దశలు", "te")
+        hindi = answer_question("झींगा पालन चरण", "hi")
+
+        self.assertTrue(any("Whiteleg shrimp" in citation["title"] for citation in telugu["citations"]))
+        self.assertTrue(any("Whiteleg shrimp" in citation["title"] for citation in hindi["citations"]))
+
 
 class ValidationTests(unittest.TestCase):
+    def test_naive_sqlite_timestamps_are_serialized_as_utc(self) -> None:
+        timestamp = datetime(2026, 11, 25, 10, 30)
+
+        self.assertEqual(serialize_utc(timestamp), "2026-11-25T10:30:00+00:00")
+
     def test_reading_bounds_reject_impossible_values(self) -> None:
         with self.assertRaises(ValidationError):
             ReadingCreate(

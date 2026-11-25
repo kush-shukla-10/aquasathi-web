@@ -3,6 +3,12 @@ from datetime import datetime, timezone
 from .models import Reading
 
 
+def serialize_utc(value: datetime) -> str:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat()
+
+
 def assess_reading(reading: Reading | None) -> dict[str, object]:
     if reading is None:
         return {

@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session, joinedload
 from .database import Base, SessionLocal, engine, get_db
 from .knowledge import KNOWLEDGE, answer_question, retrieve
 from .models import ExpertReview, Farmer, Incident, Pond, Reading, utc_now
-from .monitoring import assess_reading
+from .monitoring import assess_reading, serialize_utc
 from .schemas import (
     AssistantQuestion,
     ExpertReviewCreate,
@@ -114,7 +114,9 @@ DbSession = Annotated[Session, Depends(get_db)]
 def reading_data(reading: Reading | None) -> dict[str, object] | None:
     if reading is None:
         return None
-    return ReadingOut.model_validate(reading).model_dump(mode="json")
+    data = ReadingOut.model_validate(reading).model_dump(mode="json")
+    data["recorded_at"] = serialize_utc(reading.recorded_at)
+    return data
 
 
 def pond_data(pond: Pond, db: Session) -> dict[str, object]:
@@ -150,13 +152,13 @@ def incident_data(incident: Incident) -> dict[str, object]:
         ),
         "attached_reading": reading_data(incident.attached_reading),
         "reading_assessment": assess_reading(incident.attached_reading),
-        "created_at": incident.created_at.isoformat(),
+        "created_at": serialize_utc(incident.created_at),
         "reviews": [
             {
                 "reviewer_name": review.reviewer_name,
                 "recommendation": review.recommendation,
                 "case_status": review.case_status,
-                "created_at": review.created_at.isoformat(),
+                "created_at": serialize_utc(review.created_at),
             }
             for review in incident.reviews
         ],
